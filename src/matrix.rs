@@ -27,24 +27,6 @@ impl Matrix {
         }
     }
     
-    pub fn copy(&self) -> Self {
-        let mut data = Vec::new();
-        let (row, col) = (self.row,self.col);
-        for r in 0..row  {
-            let mut temp_row = Vec::new();
-            for c in 0..col {
-                temp_row.push(self[r][c]);
-            }
-            data.push(temp_row);
-        }
-        Self {
-            row,
-            col,
-            is_mat_ok: true,
-            data
-        }
-    }
-    
     pub fn print_mat(&self, name: &str){
         println!("-------- Matrix {} --------\n", name);
         for r in &self.data {
@@ -56,26 +38,6 @@ impl Matrix {
             println!();
         }
         println!("---------------------------");
-    }
-
-    pub fn add(&self, other: &Self) -> Self {
-        let mut matc = Matrix::new(self.row, self.col);
-        for r in 0..matc.row  {
-            for c in 0..matc.col  {
-                matc[r][c] = self[r][c] + other[r][c];
-            }
-        }
-        matc
-    }
-
-    pub fn minus(&self, other: &Self) -> Self {
-        let mut matc = Matrix::new(self.row, self.col);
-        for r in 0..matc.row  {
-            for c in 0..matc.col  {
-                matc[r][c] = self[r][c] - other[r][c];
-            }
-        }
-        matc
     }
 
     pub fn transpose(&self) -> Self {
