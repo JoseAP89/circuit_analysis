@@ -48,7 +48,7 @@ With all set the only thing to do is to run the project.
 
 The above command prints in the console the following results.
 
-|**Matrix A** |
+**Matrix A** 
 |------------|------------|---------
 | 1.5000     | -1.0000    | 0.0000    
 | -1.0000    | 1.5000     | 0.0000      
