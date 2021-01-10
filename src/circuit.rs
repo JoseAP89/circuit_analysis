@@ -1,6 +1,6 @@
 use std::collections::{HashMap,HashSet};
-extern crate ndarray;
-use ndarray::arr2;
+use crate::matrix::Matrix;
+use crate::utils::extensions::{MultEsc,SumVecEq};
 
 #[derive(Clone)]
 struct Branch {
@@ -10,13 +10,13 @@ struct Branch {
     value: f64
 }
 
-struct Circuit {
+pub struct Circuit {
     branches: Vec<Branch>,
     supernodes: Vec<Branch>,
     grounded_voltages: Vec<Branch>,
     node_names : Vec<String>,
     voltage_nodes_gnd : HashSet<i32>,
-    dimension: i32
+    dimension: usize
 }
 
 impl Circuit {
@@ -57,9 +57,10 @@ impl Circuit {
             let node = branch.start;
             voltage_nodes_gnd.insert(node);
         }
-        let dimension = voltage_nodes_gnd.len() as i32;
+        
         let mut node_names : Vec<_> = node_names.into_iter().collect();
         node_names.sort_unstable();
+        let dimension = node_names.len() ;
         Circuit {
             branches,
             supernodes,
@@ -79,5 +80,82 @@ impl Circuit {
         0.0
     }
 
-
+    pub fn solve(self)  {
+        let mut mat_a = Matrix::new(self.dimension,self.dimension);
+        let mut mat_b = Matrix::new(self.dimension,1);
+        let mut equations : Vec<Vec<Branch>> = vec![vec![];self.dimension];
+        for branch in self.branches.iter() {
+            equations[branch.start as usize -1].push(branch.clone());
+            if branch.end != 0 {
+                equations[branch.end as usize -1].push(branch.clone());
+            }
+        }
+        for (eq,branches) in equations.iter().enumerate() {
+            for branch in branches.iter() {
+                if branch.component.contains("r") {
+                    if eq as i32 == branch.start-1 {
+                        if !self.voltage_nodes_gnd.contains(&branch.start){
+                            mat_a[eq][branch.start as usize-1 ] += 1.0/branch.value;
+                        }
+                        if self.voltage_nodes_gnd.contains(&branch.start) && branch.start-1 != eq as i32 {
+                            let val = self.get_voltage_gnd(branch.start) * 1.0/branch.value; // Ajustando valor por fuente de voltaje conectada a tierra
+                            mat_b[eq][0] += val;
+                        }
+                        if !self.voltage_nodes_gnd.contains(&branch.end) && branch.end!=0 {
+                            mat_a[eq][branch.end as usize-1] +=  -1.0/branch.value;
+                        }
+                        if self.voltage_nodes_gnd.contains(&branch.end) && branch.end-1 != eq as i32 { // Ajustando valor por fuente de voltaje conectada a tierra
+                            let val = self.get_voltage_gnd(branch.end) * -1.0/branch.value;
+                            mat_b[eq][0] += val;
+                        }
+                    } else {
+                        if !self.voltage_nodes_gnd.contains(&branch.start) {
+                            mat_a[eq][branch.start as usize-1] += -1.0/branch.value;
+                         }   
+                        if self.voltage_nodes_gnd.contains(&branch.start) && branch.start-1 != eq as i32 { 
+                            let val = self.get_voltage_gnd(branch.start) * -1.0/branch.value; // Ajustando valor por fuente de voltaje conectada a tierra 
+                            mat_b[eq][0] += val;
+                        }
+                        if !self.voltage_nodes_gnd.contains(&branch.end) && branch.end!=0 {
+                            mat_a[eq][branch.end as usize-1] +=  1.0/branch.value;
+                        }
+                        if self.voltage_nodes_gnd.contains(&branch.end) && branch.end-1 != eq as i32 { // Ajustando valor por fuente de voltaje conectada a tierra 
+                            let val = self.get_voltage_gnd(branch.end) * 1.0/branch.value;
+                            mat_b[eq][0] += val;
+                        }                    
+                    }
+                } else if branch.component.contains("i") { // es una fuente de corriente
+                    if eq as i32 == branch.start-1 { // es una corriente que sale del nodo
+                        mat_b[eq][0] += -branch.value;
+                    }    
+                    else {// es una corriente que entra al nodo
+                        mat_b[eq][0] += branch.value;
+                    }
+                }
+            }
+        }
+        //Se procesa las ramas que son supernodos
+        for branch in self.supernodes.iter() {
+            mat_a[branch.start as  usize -1] = mat_a[branch.start as  usize -1].clone().sum_vec_eq(mat_a[branch.end as  usize -1].clone());
+            mat_b[branch.start as  usize -1][0] += mat_b[branch.end as  usize -1][0];
+            mat_b[branch.end as  usize -1][0] =  -1.0*branch.value;
+            mat_a[branch.end as  usize -1] =  mat_a[branch.end as  usize -1].clone().mult_esc(0.0);
+            mat_a[branch.end as  usize -1][branch.start as  usize -1] = 1.0;
+            mat_a[branch.end as  usize -1][branch.end as  usize -1] = -1.0;
+        }
+        // Se procesa los nodos con fuentes de voltaje conectadas a tierra
+        for branch in self.grounded_voltages.iter() {
+            mat_a[branch.start as usize-1] = mat_a[branch.start as  usize -1].clone().mult_esc(0.0);
+            mat_a[branch.start as usize-1][branch.start as usize-1] = 1.0 ;
+            mat_b[branch.start as usize-1][0] = branch.value;
+        }
+        mat_a.print_mat("A:");
+        mat_b.print_mat("b:");
+        let inv = mat_a.inverse();
+        let res = inv.multiply(&mat_b);
+        println!("Result: [V]");
+        for (node,res) in self.node_names.iter().zip(res.data.iter()) {
+            println!("{}: {1:.4}",node,res[0]);
+        }
+    }
 }
