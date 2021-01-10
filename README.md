@@ -56,12 +56,14 @@ The above command prints in the console the following results.
  0.0000     | 0.0000     | 1.0000 
 
 **Matrix b**
+ col 1 |
 -----------|
 0.0000   
 7.0000   
 -10.0000 
 
 **Result [V]**
+ col 1 |
 -------------|
 V1: 5.6000
 V2: 8.4000
