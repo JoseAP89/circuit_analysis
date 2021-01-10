@@ -46,22 +46,22 @@ With all set the only thing to do is to run the project.
 
 `cargo run ./tests/test4.txt`
 
-The above command print in the console the following results.
+The above command prints in the console the following results.
 
 **Matrix A**
-------------------------------------
+-----------|------------|-----------
 1.5000     | -1.0000    | 0.0000    
 -1.0000    | 1.5000     | 0.0000      
 0.0000     | 0.0000     | 1.0000 
 
 **Matrix b**
------------
+-----------|
 0.0000     | 
 7.0000     | 
 -10.0000   | 
 
 **Result [V]**
---------------
+-------------|
 V1: 5.6000
 V2: 8.4000
 V3: -10.0000
